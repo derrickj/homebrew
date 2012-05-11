@@ -44,14 +44,31 @@ class Nss < Formula
     Dir['mozilla/dist/Darwin*/lib/*'].each do |file|
       cp file, lib
     end
+
+    (lib+'pkgconfig/nss.pc').write pkg_file
   end
 
   def test
     # See: http://www.mozilla.org/projects/security/pki/nss/tools/certutil.html
     mktemp do
       File.open('passwd', 'w') {|f| f.write("It's a secret to everyone.") }
-      system "certutil -N -d #{Dir.getwd} -f passwd"
-      system "certutil -L -d #{Dir.getwd}"
+      system "#{bin}/certutil -N -d #{Dir.getwd} -f passwd"
+      system "#{bin}/certutil -L -d #{Dir.getwd}"
     end
+  end
+
+  def pkg_file; <<-EOF
+prefix=#{HOMEBREW_PREFIX}
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include/nss
+
+Name: NSS
+Description: Mozilla Network Security Services
+Version: 3.12.10
+Requires: nspr
+Libs: -L${libdir} -lnss3 -lnssutil3 -lsmime3 -lssl3
+Cflags: -I${includedir}
+EOF
   end
 end

@@ -1,9 +1,9 @@
 require 'formula'
 
 class Elasticsearch < Formula
-  url 'https://github.com/downloads/elasticsearch/elasticsearch/elasticsearch-0.18.4.tar.gz'
   homepage 'http://www.elasticsearch.org'
-  md5 '4a641cfbaf4ec79b802171dc9f35b21e'
+  url 'https://github.com/downloads/elasticsearch/elasticsearch/elasticsearch-0.19.3.tar.gz'
+  md5 '8a0a5b8eb3d039a6cddedb82103ffa47'
 
   def cluster_name
     "elasticsearch_#{ENV['USER']}"
@@ -48,24 +48,28 @@ class Elasticsearch < Formula
     end
 
     # Write .plist file for `launchd`
-    (prefix+'org.elasticsearch.plist').write startup_plist
-    (prefix+'org.elasticsearch.plist').chmod 0644
+    plist_path.write startup_plist
+    plist_path.chmod 0644
   end
 
   def caveats
     <<-EOS.undent
     If this is your first install, automatically load ElasticSearch on login with:
         mkdir -p ~/Library/LaunchAgents
-        ln -nfs #{prefix}/org.elasticsearch.plist ~/Library/LaunchAgents/
-        launchctl load -wF ~/Library/LaunchAgents/org.elasticsearch.plist
+        ln -nfs #{plist_path} ~/Library/LaunchAgents/
+        launchctl load -wF ~/Library/LaunchAgents/#{plist_path.basename}
 
-    If this is an upgrade and you already have the org.elasticsearch.plist loaded:
-        launchctl unload -w ~/Library/LaunchAgents/org.elasticsearch.plist
-        ln -nfs #{prefix}/org.elasticsearch.plist ~/Library/LaunchAgents/
-        launchctl load -wF ~/Library/LaunchAgents/org.elasticsearch.plist
+    If this is an upgrade and you already have the #{plist_path.basename} loaded:
+        launchctl unload -w ~/Library/LaunchAgents/#{plist_path.basename}
+        ln -nfs #{plist_path} ~/Library/LaunchAgents/
+        launchctl load -wF ~/Library/LaunchAgents/#{plist_path.basename}
+
+    If upgrading from 0.18 ElasticSearch requires flushing before shutting
+    down the cluster with no indexing operations happening after flush:
+        curl host:9200/_flush
 
     To stop the ElasticSearch daemon:
-        launchctl unload -wF ~/Library/LaunchAgents/org.elasticsearch.plist
+        launchctl unload -wF ~/Library/LaunchAgents/#{plist_path.basename}
 
     To start ElasticSearch manually:
         elasticsearch -f -D es.config=#{prefix}/config/elasticsearch.yml
@@ -93,10 +97,10 @@ class Elasticsearch < Formula
           <key>KeepAlive</key>
           <true/>
           <key>Label</key>
-          <string>org.elasticsearch</string>
+          <string>#{plist_name}</string>
           <key>ProgramArguments</key>
           <array>
-            <string>#{bin}/elasticsearch</string>
+            <string>#{HOMEBREW_PREFIX}/bin/elasticsearch</string>
             <string>-f</string>
             <string>-D es.config=#{prefix}/config/elasticsearch.yml</string>
           </array>
